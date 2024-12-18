@@ -25,7 +25,7 @@ namespace AsyncMultiThreadProgramming.Controllers
       });
 
 
-      Parallel.For(1000, 5000, (item) =>
+      Parallel.For(100, 200, (item) =>
       {
         Console.Out.Write("item 2" + item);
         Console.Out.WriteLine("ThreadId For :" + Thread.CurrentThread.ManagedThreadId);
@@ -41,24 +41,24 @@ namespace AsyncMultiThreadProgramming.Controllers
 
 
     [HttpGet("paralelForAndParalelForeachV2")]
-    public async Task<IActionResult> ParalelForAndParalelForeachV2(CancellationToken cancellationToken)
+    public  Task<OkResult> ParalelForAndParalelForeachV2(CancellationToken cancellationToken)
     {
       // Sonuç: sıralı senkron bir şekilde birbirlerini bekleyerek çalıştırlar. Fakat foreach yada for içerisindeki kodlar ise paralelde birden fazla thread bölünererek çalıştı.
-      await Parallel.ForEachAsync(Enumerable.Range(0, 100), async (item, cancellationToken) =>
+      Parallel.ForEachAsync(Enumerable.Range(0, 1000000), async (item, cancellationToken) =>
      {
        await Console.Out.WriteLineAsync("item 1" + item);
        await Console.Out.WriteLineAsync("ThreadId Foreach:" + Thread.CurrentThread.ManagedThreadId);
      });
 
 
-     await Parallel.ForAsync(10, 50, async (item, cancellationToken) =>
+     Parallel.ForAsync(100, 200, async (item, cancellationToken) =>
       {
         await Console.Out.WriteLineAsync("item 2" + item);
         await Console.Out.WriteLineAsync("ThreadId For :" + Thread.CurrentThread.ManagedThreadId);
       });
 
 
-      return Ok();
+      return Task.FromResult(new OkResult());
 
     }
 
@@ -131,46 +131,32 @@ namespace AsyncMultiThreadProgramming.Controllers
       int counter = 0;
       int value = 0;
       //int counter2 = 0;
-      // object counterLockObject = new object(); // eski yöntem, bu yöntem performası olumsuz etkiliyor.
+      /*object counterLockObject = new object();*/ // eski yöntem, bu yöntem performası olumsuz etkiliyor.
 
       ConcurrentBag<double> pows = new(); // sırası bir şekilde çalışır. Unordered
 
-      // private readonly System.Threading.Lock _balanceLock = new(); Use `dont use lock object` use System.Threading.Lock C#13 
-
-      Parallel.ForEach(Enumerable.Range(0, 10), (item) =>
+      Parallel.ForEach(Enumerable.Range(0, 100000), (item) =>
       {
         double z = Math.Pow(item, 2); // CPU bounded bir işlem.
         double y = Math.Sqrt(item);
 
         pows.Add(z); // eğer ki object list veya list ile paralel kodlar içerisindeki verileri race condition olmadan listeye düzgün bir şekilde eklemek istersek. Concurent Collections Thread Safe koleksiyonları kullanıyoruz.
 
+        //lock (counterLockObject)
+        //{
+        //  counter++;
+        //}
 
-        // counter++;  // sorunumuz thread Safe çalışamadığımızdan race condition durumu meydana geldi.
+        //counter++;  // sorunumuz thread Safe çalışamadığımızdan race condition durumu meydana geldi.
         // Sayısal ifadelerin paralel kodlar içerisinde hesaplanmasında tercih ettiğimi thread safe bir sınıf.
         Interlocked.Increment(ref counter); // Thread Safe Code 
         Interlocked.Exchange(ref value, 10); // Veriyi güncelledik
-
-
-        //lock (counterLockObject)
-        //{
-        //  counter2++;
-        //}
-
       });
-
-      // 34196817
-      // 28328522
-      // 17581089
-
-
-
 
 
       return Ok(new { counter, value, pows });
 
     }
-
-
 
 
 
